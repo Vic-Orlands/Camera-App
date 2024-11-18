@@ -258,20 +258,21 @@ export default function HomeScreen() {
   };
 
   const codeScanner = useCodeScanner({
-    codeTypes: ["qr", "ean-13"],
+    codeTypes: ["qr", "ean-13", "upc-a"],
     onCodeScanned: (codes) => {
-      console.log(`Scanned ${codes.length} codes!`);
+      for (const code of codes) {
+        console.log(`Scanned ${code.type}: ${code.frame}, ${code.value}`);
+      }
     },
   });
 
   // const faces = FaceDetection.detect(imageURL, { landmarkMode: 'all' });
-
   const frameProcessor = useFrameProcessor((frame) => {
     "worklet";
     const faceDetection = FaceDetection.detect(
       "https://reactnative.dev/img/tiny_logo.png"
     );
-    console.log(`You're looking at a ${faceDetection}.`);
+    console.log(`You're looking at a ${faceDetection}, frame: ${frame}`);
   }, []);
 
   if (!hasPermission || !device) {
@@ -310,19 +311,18 @@ export default function HomeScreen() {
         <>
           <Camera
             ref={cameraRef}
-            photo={true}
-            video={true}
+            photo={!toggleVideoRecorder}
+            video={toggleVideoRecorder}
             style={StyleSheet.absoluteFill}
             device={device}
             isActive={true}
-            audio={true}
+            audio={toggleVideoRecorder}
             // format={"jpeg"}
             // videoBitRate={"extra-high"}
             codeScanner={codeScanner}
             enableZoomGesture={true}
-            zoom={5}
             torch={turnOnFlash ? "on" : "off"}
-            frameProcessor={frameProcessor}
+            // frameProcessor={frameProcessor}
           />
 
           {showPhoto && photoUri && (
