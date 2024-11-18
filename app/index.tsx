@@ -19,6 +19,7 @@ import {
   useCameraDevices,
   useCameraPermission,
   useCodeScanner,
+  useFrameProcessor,
 } from "react-native-vision-camera";
 import {
   CameraRoll,
@@ -27,6 +28,7 @@ import {
 } from "@react-native-camera-roll/camera-roll";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Entypo, MaterialIcons } from "@expo/vector-icons";
+import FaceDetection from "@react-native-ml-kit/face-detection";
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
@@ -262,6 +264,16 @@ export default function HomeScreen() {
     },
   });
 
+  // const faces = FaceDetection.detect(imageURL, { landmarkMode: 'all' });
+
+  const frameProcessor = useFrameProcessor((frame) => {
+    "worklet";
+    const faceDetection = FaceDetection.detect(
+      "https://reactnative.dev/img/tiny_logo.png"
+    );
+    console.log(`You're looking at a ${faceDetection}.`);
+  }, []);
+
   if (!hasPermission || !device) {
     return (
       <View style={styles.permissionContainer}>
@@ -310,6 +322,7 @@ export default function HomeScreen() {
             enableZoomGesture={true}
             zoom={5}
             torch={turnOnFlash ? "on" : "off"}
+            frameProcessor={frameProcessor}
           />
 
           {showPhoto && photoUri && (
