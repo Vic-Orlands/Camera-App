@@ -18,6 +18,7 @@ import {
   useCameraDevice,
   useCameraDevices,
   useCameraPermission,
+  useCodeScanner,
 } from "react-native-vision-camera";
 import {
   CameraRoll,
@@ -254,6 +255,13 @@ export default function HomeScreen() {
     )}`;
   };
 
+  const codeScanner = useCodeScanner({
+    codeTypes: ["qr", "ean-13"],
+    onCodeScanned: (codes) => {
+      console.log(`Scanned ${codes.length} codes!`);
+    },
+  });
+
   if (!hasPermission || !device) {
     return (
       <View style={styles.permissionContainer}>
@@ -296,7 +304,12 @@ export default function HomeScreen() {
             device={device}
             isActive={true}
             audio={true}
-            videoBitRate={"extra-high"}
+            // format={"jpeg"}
+            // videoBitRate={"extra-high"}
+            codeScanner={codeScanner}
+            enableZoomGesture={true}
+            zoom={5}
+            torch={turnOnFlash ? "on" : "off"}
           />
 
           {showPhoto && photoUri && (
