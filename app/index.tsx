@@ -22,11 +22,15 @@ import {
 import {
   CameraRoll,
   PhotoIdentifier,
+  useCameraRoll,
 } from "@react-native-camera-roll/camera-roll";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Entypo, MaterialIcons } from "@expo/vector-icons";
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   const [toggleFrontCamera, setToggleFrontCamera] = useState(false);
   const device = useCameraDevice(toggleFrontCamera ? "front" : "back");
   // const devices = useCameraDevices();
@@ -38,6 +42,10 @@ export default function HomeScreen() {
   const [showPhoto, setShowPhoto] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState(false);
   const [gallery, setGallery] = useState<PhotoIdentifier[]>([]);
+  const [photos, getPhotos, save] = useCameraRoll();
+  const [turnOnFlash, setTurnOnFlash] = useState<boolean>(false);
+  const [toggleVideoRecorder, setToggleVideoRecorder] = useState(false);
+  const [videoTimer, setVideoTimer] = useState(0);
 
   useEffect(() => {
     if (hasPermission && grantPermission) {
@@ -126,14 +134,31 @@ export default function HomeScreen() {
       }, 3000);
     }
 
-    // Cleanup timeout when component unmounts or showPhoto changes
     return () => {
       clearTimeout(timeoutId);
     };
   }, [showPhoto]);
 
-  const turnOnFlash = () => {
-    // setTurnOnFlash((prev) => !prev);
+  useEffect(() => {
+    const getGallery = () => {
+      CameraRoll.getPhotos({
+        first: 1,
+        assetType: "Photos",
+      })
+        .then((photo) => {
+          setGallery(photo.edges);
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+    };
+    getGallery();
+
+    return () => getGallery();
+  }, []);
+
+  const toggleFlash = () => {
+    setTurnOnFlash((prev) => !prev);
   };
 
   const toggleCamera = () => {
@@ -147,13 +172,12 @@ export default function HomeScreen() {
 
     if (cameraRef.current) {
       const photo = await cameraRef.current.takePhoto({
-        // flash: "on",
+        flash: turnOnFlash ? "on" : "off",
         enableShutterSound: true,
       });
       await CameraRoll.saveAsset(`file://${photo.path}`, {
         type: "photo",
       });
-      console.log(photo);
 
       setPhotoUri(photo.path);
       setShowPhoto(true);
@@ -176,29 +200,57 @@ export default function HomeScreen() {
   };
 
   const startRecording = async () => {
-    // if (cameraRef.current) {
-    //   try {
-    //     const video = await cameraRef.current.startRecording({
-    //       onRecordingError: (error) => console.error("Recording error:", error),
-    //       onRecordingFinished: (video) => {
-    //         console.log("Recording finished:", video);
-    //         setIsRecording(false);
-    //       },
-    //     });
-    //     setIsRecording(true);
-    //     console.log("Recording started:", video);
-    //   } catch (error) {
-    //     console.error("Error starting recording:", error);
-    //   }
-    // }
+    if (cameraRef.current) {
+      try {
+        if (isRecording) {
+          await cameraRef.current.stopRecording();
+          setIsRecording(false);
+
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+        } else {
+          cameraRef.current.startRecording({
+            flash: turnOnFlash ? "on" : "off",
+            onRecordingError: (error) =>
+              console.error("Recording error:", error),
+            onRecordingFinished: async (video) => {
+              try {
+                await CameraRoll.saveAsset(video.path, { type: "video" });
+              } catch (error) {
+                console.error("Error saving video:", error);
+              }
+              setIsRecording(false);
+              if (timerRef.current) {
+                clearInterval(timerRef.current);
+              }
+            },
+          });
+          setIsRecording(true);
+
+          setVideoTimer(0);
+          timerRef.current = setInterval(() => {
+            setVideoTimer((prevTime) => prevTime + 1);
+          }, 1000);
+        }
+      } catch (error) {
+        console.error("Error during recording:", error);
+        setIsRecording(false);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+      }
+    }
   };
 
-  const stopRecording = async () => {
-    // if (cameraRef.current && isRecording) {
-    //   const video = await cameraRef.current.stopRecording();
-    //   console.log("Recording stopped:", video);
-    //   setIsRecording(false);
-    // }
+  const formatTime = (timeInSeconds: number) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = timeInSeconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+      2,
+      "0"
+    )}`;
   };
 
   if (!hasPermission || !device) {
@@ -219,10 +271,10 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {gallery.length > 0 ? (
+      {photos.edges.length > 0 ? (
         <ScrollView>
           <SafeAreaView style={styles.galleryGrid}>
-            {gallery.map((item, index) => {
+            {photos.edges.map((item, index) => {
               return (
                 <Image
                   key={index}
@@ -253,23 +305,97 @@ export default function HomeScreen() {
             </View>
           )}
 
-          <View style={styles.controlsView}>
-            <Pressable onPress={openGallery}>
-              <Image
-                source={{ uri: `file://${photoUri}` }}
-                style={styles.photogallery}
-              />
-            </Pressable>
+          {isRecording && (
+            <Text style={styles.videoTimer}>{formatTime(videoTimer)}</Text>
+          )}
 
-            <TouchableOpacity onPress={takePhoto} style={styles.takePhoto}>
-              <View style={styles.takePhotoButton}></View>
+          <TouchableOpacity style={styles.flash} onPress={toggleFlash}>
+            <Entypo
+              name="flash"
+              size={40}
+              color={turnOnFlash ? "yellow" : "rgba(255, 255, 255, 0.4)"}
+            />
+          </TouchableOpacity>
+
+          <View style={styles.textOverlayView}>
+            <TouchableOpacity onPress={() => setToggleVideoRecorder(false)}>
+              <Text
+                style={[
+                  styles.textOverlayText,
+                  !toggleVideoRecorder && {
+                    borderWidth: 1,
+                    borderColor: "#fff",
+                    borderRadius: 6,
+                  },
+                ]}
+              >
+                Photo
+              </Text>
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => setToggleVideoRecorder(true)}>
+              <Text
+                style={[
+                  styles.textOverlayText,
+                  toggleVideoRecorder && {
+                    borderWidth: 1,
+                    borderColor: "#fff",
+                    borderRadius: 6,
+                  },
+                ]}
+              >
+                Video
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.controlsView}>
+            {gallery.length > 0 ? (
+              gallery.splice(0, 1).map((item, index) => {
+                return (
+                  <Pressable onPress={() => getPhotos()} key={index}>
+                    <Image
+                      style={styles.photogallery}
+                      source={{ uri: item.node.image.uri }}
+                    />
+                  </Pressable>
+                );
+              })
+            ) : (
+              <Pressable
+                // onPress={openGallery}
+                onPress={() => {
+                  getPhotos();
+                  console.log(photos.edges);
+                }}
+              >
+                <Image
+                  style={styles.photogallery}
+                  source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
+                />
+              </Pressable>
+            )}
+
+            {toggleVideoRecorder ? (
+              <TouchableOpacity
+                onPress={startRecording}
+                style={styles.takePhoto}
+              >
+                <View
+                  style={[styles.takePhotoButton, { backgroundColor: "red" }]}
+                ></View>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={takePhoto} style={styles.takePhoto}>
+                <View style={styles.takePhotoButton}></View>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={toggleCamera}
               style={styles.toggleCamera}
             >
-              <View style={styles.toggleCameraButton}></View>
+              {/* <View style={styles.toggleCameraButton}></View> */}
+              <MaterialIcons name="cameraswitch" size={28} color="white" />
             </TouchableOpacity>
           </View>
         </>
@@ -285,7 +411,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor: "black",
+    backgroundColor: "black",
   },
   permissionContainer: {
     flex: 1,
@@ -322,6 +448,33 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "flex-start",
     borderRadius: 8,
+  },
+  videoTimer: {
+    position: "absolute",
+    top: 50,
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+  },
+  flash: {
+    position: "absolute",
+    top: 80,
+    right: 20,
+  },
+  textOverlayView: {
+    position: "absolute",
+    top: 80,
+    left: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: 100,
+  },
+  textOverlayText: {
+    fontSize: 20,
+    color: "#fff",
+    paddingVertical: 4,
+    paddingHorizontal: 12,
   },
   controlsView: {
     position: "absolute",
@@ -360,16 +513,8 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: "center",
     justifyContent: "center",
-    padding: 12,
     height: 60,
     width: 60,
-  },
-  toggleCameraButton: {
-    borderRadius: 50,
-    borderColor: "#fff",
-    borderWidth: 1,
-    width: "100%",
-    height: "100%",
   },
   photoContainer: {
     position: "absolute",
