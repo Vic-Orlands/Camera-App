@@ -171,15 +171,15 @@ export default function HomeScreen() {
     }
 
     if (cameraRef.current) {
-      const photo = await cameraRef.current.takePhoto({
+      const { path } = await cameraRef.current.takePhoto({
         flash: turnOnFlash ? "on" : "off",
         enableShutterSound: true,
       });
-      await CameraRoll.saveAsset(`file://${photo.path}`, {
+      await CameraRoll.saveAsset(`file://${path}`, {
         type: "photo",
       });
 
-      setPhotoUri(photo.path);
+      setPhotoUri(path);
       setShowPhoto(true);
     } else {
       Alert.alert("Camera not ready");
@@ -191,8 +191,8 @@ export default function HomeScreen() {
       first: 20,
       assetType: "Photos",
     })
-      .then((photo) => {
-        setGallery(photo.edges);
+      .then(({ edges }) => {
+        setGallery(edges);
       })
       .catch((err) => {
         console.error(err);
@@ -215,9 +215,10 @@ export default function HomeScreen() {
             flash: turnOnFlash ? "on" : "off",
             onRecordingError: (error) =>
               console.error("Recording error:", error),
-            onRecordingFinished: async (video) => {
+            onRecordingFinished: async ({ path }) => {
               try {
-                await CameraRoll.saveAsset(video.path, { type: "video" });
+                // await save(`file://${path}`, { type: "video" }); // if you want to use the useCameraRoll hook
+                await CameraRoll.saveAsset(`file://${path}`, { type: "video" });
               } catch (error) {
                 console.error("Error saving video:", error);
               }
@@ -294,6 +295,8 @@ export default function HomeScreen() {
             style={StyleSheet.absoluteFill}
             device={device}
             isActive={true}
+            audio={true}
+            videoBitRate={"extra-high"}
           />
 
           {showPhoto && photoUri && (
