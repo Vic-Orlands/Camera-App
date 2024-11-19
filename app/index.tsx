@@ -15,6 +15,7 @@ import {
 import {
   Camera,
   CameraDevice,
+  Frame,
   useCameraDevice,
   useCameraDevices,
   useCameraPermission,
@@ -28,8 +29,20 @@ import {
 } from "@react-native-camera-roll/camera-roll";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Entypo, MaterialIcons } from "@expo/vector-icons";
-import FaceDetection from "@react-native-ml-kit/face-detection";
-import { labelImage } from "vision-camera-image-labeler";
+import ImageLabeling from "@react-native-ml-kit/image-labeling";
+import { Worklets } from "react-native-worklets-core";
+import { frameToBase64 } from "vision-camera-base64";
+
+const myFunction = async (frame: string) => {
+  try {
+    const labels = await ImageLabeling.label(frame);
+    console.log("labels:", labels);
+    return labels.map((label) => console.log("text:", label.text));
+  } catch (error) {
+    console.error("Error during image labeling:", error);
+    return [];
+  }
+};
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
@@ -267,11 +280,11 @@ export default function HomeScreen() {
     },
   });
 
-  // const faces = FaceDetection.detect(imageURL, { landmarkMode: 'all' });
+  const myFunctionJS = Worklets.createRunOnJS(myFunction);
   const frameProcessor = useFrameProcessor((frame) => {
     "worklet";
-    const labels = labelImage(frame);
-    console.log(`You're looking at a ${labels}, ${frame}`);
+    const imageAsBase64 = frameToBase64(frame);
+    myFunctionJS(imageAsBase64);
   }, []);
 
   if (!hasPermission || !device) {
@@ -314,14 +327,13 @@ export default function HomeScreen() {
             video={toggleVideoRecorder}
             style={StyleSheet.absoluteFill}
             device={device}
-            isActive={true}
+            isActive={!!device}
+            pixelFormat="yuv"
             audio={toggleVideoRecorder}
-            // format={"jpeg"}
-            // videoBitRate={"extra-high"}
             // codeScanner={codeScanner}
             enableZoomGesture={true}
             torch={turnOnFlash ? "on" : "off"}
-            frameProcessor={frameProcessor}
+            frameProcessor={!toggleVideoRecorder ? undefined : frameProcessor}
           />
 
           {showPhoto && photoUri && (

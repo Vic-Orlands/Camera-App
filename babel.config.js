@@ -7,7 +7,7 @@ module.exports = function (api) {
       [
         "react-native-reanimated/plugin",
         {
-          globals: ["__labelImage"],
+          globals: ["__frameToBase64"],
         },
       ],
     ],
