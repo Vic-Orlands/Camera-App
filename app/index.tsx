@@ -27,17 +27,17 @@ import {
   PhotoIdentifier,
   useCameraRoll,
 } from "@react-native-camera-roll/camera-roll";
-import * as FileSystem from "expo-file-system";
 import { Worklets } from "react-native-worklets-core";
 import { Entypo, MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ImageLabeling from "@react-native-ml-kit/image-labeling";
+import Slider from "@react-native-community/slider";
 
 const myFunction = async (frame: string) => {
   try {
-    const labels = await ImageLabeling.label(frame);
-    console.log("labels:", labels);
-    return labels.map((label) => console.log("text:", label.text));
+    const labels = await ImageLabeling.label(frame.toString());
+    console.log({ labels: labels }, { frame: frame });
+    // return labels.map((label) => console.log("text:", label.text));
   } catch (error) {
     console.error("Error during image labeling:", error);
     return [];
@@ -60,9 +60,10 @@ export default function HomeScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [gallery, setGallery] = useState<PhotoIdentifier[]>([]);
   const [photos, getPhotos, save] = useCameraRoll();
-  const [turnOnFlash, setTurnOnFlash] = useState<boolean>(false);
+  const [turnOnFlash, setTurnOnFlash] = useState<"off" | "on">("off");
   const [toggleVideoRecorder, setToggleVideoRecorder] = useState(false);
   const [videoTimer, setVideoTimer] = useState(0);
+  const [zoom, setZoom] = useState<number>(1);
 
   useEffect(() => {
     if (hasPermission && grantPermission) {
@@ -175,7 +176,7 @@ export default function HomeScreen() {
   }, []);
 
   const toggleFlash = () => {
-    setTurnOnFlash((prev) => !prev);
+    setTurnOnFlash((prev) => (prev === "on" ? "off" : "on"));
   };
 
   const toggleCamera = () => {
@@ -189,7 +190,7 @@ export default function HomeScreen() {
 
     if (cameraRef.current) {
       const { path } = await cameraRef.current.takePhoto({
-        flash: turnOnFlash ? "on" : "off",
+        flash: turnOnFlash,
         enableShutterSound: true,
       });
       await CameraRoll.saveAsset(`file://${path}`, {
@@ -229,7 +230,7 @@ export default function HomeScreen() {
           }
         } else {
           cameraRef.current.startRecording({
-            flash: turnOnFlash ? "on" : "off",
+            flash: turnOnFlash,
             onRecordingError: (error) =>
               console.error("Recording error:", error),
             onRecordingFinished: async ({ path }) => {
@@ -283,29 +284,13 @@ export default function HomeScreen() {
   const myFunctionJS = Worklets.createRunOnJS(myFunction);
   const frameProcessor = useFrameProcessor((frame) => {
     "worklet";
-
-    const takeSnapshot = async () => {
-      try {
-        if (cameraRef.current) {
-          const photo = await cameraRef.current.takeSnapshot({
-            quality: 85,
-          });
-          console.log(photo);
-
-          const imageAsBase64 = await FileSystem.readAsStringAsync(photo.path, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-          console.log(imageAsBase64);
-
-          myFunctionJS(imageAsBase64);
-        }
-      } catch (error) {
-        console.log("Error converting Image:", error);
-      }
-    };
-    takeSnapshot()
-
-    // Worklets.runOnJS(takeSnapshot);
+    if (frame.pixelFormat === "rgb") {
+      const buffer = frame.toArrayBuffer();
+      const data = new Uint8Array(buffer);
+      console.log(`Pixel at 0,0: RGB(${data[0]}, ${data[1]}, ${data[2]})`);
+    }
+    // console.log(frame);
+    // myFunctionJS(frame);
   }, []);
 
   if (!hasPermission || !device) {
@@ -353,8 +338,9 @@ export default function HomeScreen() {
             audio={toggleVideoRecorder}
             // codeScanner={codeScanner}
             enableZoomGesture={true}
-            torch={turnOnFlash ? "on" : "off"}
-            frameProcessor={!toggleVideoRecorder ? undefined : frameProcessor}
+            torch={turnOnFlash}
+            zoom={zoom}
+            frameProcessor={toggleVideoRecorder ? undefined : frameProcessor}
           />
 
           {showPhoto && photoUri && (
@@ -374,9 +360,23 @@ export default function HomeScreen() {
             <Entypo
               name="flash"
               size={40}
-              color={turnOnFlash ? "yellow" : "rgba(255, 255, 255, 0.4)"}
+              color={
+                turnOnFlash === "on" ? "yellow" : "rgba(255, 255, 255, 0.4)"
+              }
             />
           </TouchableOpacity>
+
+          <Slider
+            vertical
+            value={zoom}
+            onValueChange={setZoom}
+            style={styles.slider}
+            minimumValue={1}
+            maximumValue={10}
+            minimumTrackTintColor="#f3f3f3"
+            maximumTrackTintColor="#fff"
+            thumbTintColor="#fff"
+          />
 
           <View style={styles.textOverlayView}>
             <TouchableOpacity onPress={() => setToggleVideoRecorder(false)}>
@@ -521,6 +521,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 80,
     right: 20,
+  },
+  slider: {
+    position: "absolute",
+    bottom: 150,
+    width: "70%",
   },
   textOverlayView: {
     position: "absolute",
