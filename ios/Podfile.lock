@@ -375,6 +375,7 @@ PODS:
     - React-RCTText (= 0.76.2)
     - React-RCTVibration (= 0.76.2)
   - React-callinvoker (0.76.2)
+  - React-Codegen (0.1.0)
   - React-Core (0.76.2):
     - glog
     - hermes-engine
@@ -1704,7 +1705,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-webview (13.12.2):
+  - react-native-webview (13.12.4):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2037,6 +2038,9 @@ PODS:
   - RNMLKitFaceDetection (1.3.2):
     - GoogleMLKit/FaceDetection (= 6.0.0)
     - React
+  - RNMLKitImageLabeling (1.4.1):
+    - GoogleMLKit/ImageLabeling (= 6.0.0)
+    - React
   - RNReanimated (3.16.1):
     - DoubleConversion
     - glog
@@ -2191,9 +2195,13 @@ PODS:
     - ReactCommon/turbomodule/core
     - Yoga
   - SocketRocket (0.7.1)
-  - vision-camera-image-labeler (0.1.6):
-    - GoogleMLKit/ImageLabeling
+  - vision-camera-base64 (1.1.0):
+    - RCT-Folly
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
     - React-Core
+    - ReactCommon/turbomodule/core
   - VisionCamera (4.6.1):
     - VisionCamera/Core (= 4.6.1)
     - VisionCamera/FrameProcessors (= 4.6.1)
@@ -2302,10 +2310,11 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - "RNMLKitFaceDetection (from `../node_modules/@react-native-ml-kit/face-detection`)"
+  - "RNMLKitImageLabeling (from `../node_modules/@react-native-ml-kit/image-labeling`)"
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
-  - vision-camera-image-labeler (from `../node_modules/vision-camera-image-labeler`)
+  - vision-camera-base64 (from `../node_modules/vision-camera-base64`)
   - VisionCamera (from `../node_modules/react-native-vision-camera`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -2327,6 +2336,7 @@ SPEC REPOS:
     - MLKitVisionKit
     - nanopb
     - PromisesObjC
+    - React-Codegen
     - SocketRocket
 
 EXTERNAL SOURCES:
@@ -2513,14 +2523,16 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNMLKitFaceDetection:
     :path: "../node_modules/@react-native-ml-kit/face-detection"
+  RNMLKitImageLabeling:
+    :path: "../node_modules/@react-native-ml-kit/image-labeling"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/react-native-screens"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
-  vision-camera-image-labeler:
-    :path: "../node_modules/vision-camera-image-labeler"
+  vision-camera-base64:
+    :path: "../node_modules/vision-camera-base64"
   VisionCamera:
     :path: "../node_modules/react-native-vision-camera"
   Yoga:
@@ -2577,6 +2589,7 @@ SPEC CHECKSUMS:
   RCTTypeSafety: 30e36ceafa26979860e13fb3f234fb61692924c2
   React: 10ad41b51f981992714011b6a4e081234c28dc2e
   React-callinvoker: 58b51494f8b2cca07a27fc6f69273239c30a1e70
+  React-Codegen: 4b8b4817cea7a54b83851d4c1f91f79aa73de30a
   React-Core: 54860c16fb5873a6f00dd44d8979bbb648b34c7c
   React-CoreModules: 443101f113a7b5d51b93e061574dcadf7850f8cc
   React-cxxreact: 5407ecb854a755de34c0e6b03965d3a51c28c933
@@ -2603,7 +2616,7 @@ SPEC CHECKSUMS:
   react-native-cameraroll: 6407cec6b16f9c00404bb34bd1d80c4752b31673
   react-native-pager-view: 94195f1bf32e7f78359fa20057c97e632364a08b
   react-native-safe-area-context: 458f6b948437afcb59198016b26bbd02ff9c3b47
-  react-native-webview: 06f91954784dde28e1210f381c791f0c5f9bd9a2
+  react-native-webview: 0bd56be54d01756f20eb942dad37a2cd22a6def2
   react-native-worklets-core: 7186c6632dc36ebec96b2e205388ea0ac224dd91
   React-nativeconfig: 470fce6d871c02dc5eff250a362d56391b7f52d6
   React-NativeModulesApple: 6297fc3136c1fd42884795c51d7207de6312b606
@@ -2634,11 +2647,12 @@ SPEC CHECKSUMS:
   ReactCommon: 208cb02e3c0bb8a727b3e1a1782202bcfa5d9631
   RNGestureHandler: fc5ce5bf284640d3af6431c3a5c3bc121e98d045
   RNMLKitFaceDetection: c3d95579c042b8937a682a55b04659dc0c4812f8
+  RNMLKitImageLabeling: 1fd520a8a55bf26bdadb793bdac4079068bc7bd2
   RNReanimated: 77242c6d67416988a2fd9f5cf574bb3e60016362
   RNScreens: 27587018b2e6082f5172b1ecf158c14a0e8842d6
   RNVectorIcons: 07792a9538e8577c1263fcad187712e90d65d8fb
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
-  vision-camera-image-labeler: 44dc35bea2ce7a6967d1033e48a210500a50be7d
+  vision-camera-base64: c67d1361c81eb08975687d1a89c1a7ef00ccab37
   VisionCamera: ec141897a88c2e95e8b83cf97b8e4db801e02fd6
   Yoga: c5b0e913b5b3b4cde588227c1402e747797061f3
 

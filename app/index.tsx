@@ -1,37 +1,37 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  StyleSheet,
   View,
   Text,
   Image,
-  TouchableOpacity,
   Alert,
-  PermissionsAndroid,
   Platform,
-  Dimensions,
   Pressable,
   ScrollView,
+  Dimensions,
+  StyleSheet,
+  TouchableOpacity,
+  PermissionsAndroid,
 } from "react-native";
 import {
   Camera,
-  CameraDevice,
   Frame,
+  CameraDevice,
+  useCodeScanner,
   useCameraDevice,
   useCameraDevices,
-  useCameraPermission,
-  useCodeScanner,
   useFrameProcessor,
+  useCameraPermission,
 } from "react-native-vision-camera";
 import {
   CameraRoll,
   PhotoIdentifier,
   useCameraRoll,
 } from "@react-native-camera-roll/camera-roll";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Entypo, MaterialIcons } from "@expo/vector-icons";
-import ImageLabeling from "@react-native-ml-kit/image-labeling";
+import * as FileSystem from "expo-file-system";
 import { Worklets } from "react-native-worklets-core";
-import { frameToBase64 } from "vision-camera-base64";
+import { Entypo, MaterialIcons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import ImageLabeling from "@react-native-ml-kit/image-labeling";
 
 const myFunction = async (frame: string) => {
   try {
@@ -283,8 +283,29 @@ export default function HomeScreen() {
   const myFunctionJS = Worklets.createRunOnJS(myFunction);
   const frameProcessor = useFrameProcessor((frame) => {
     "worklet";
-    const imageAsBase64 = frameToBase64(frame);
-    myFunctionJS(imageAsBase64);
+
+    const takeSnapshot = async () => {
+      try {
+        if (cameraRef.current) {
+          const photo = await cameraRef.current.takeSnapshot({
+            quality: 85,
+          });
+          console.log(photo);
+
+          const imageAsBase64 = await FileSystem.readAsStringAsync(photo.path, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          console.log(imageAsBase64);
+
+          myFunctionJS(imageAsBase64);
+        }
+      } catch (error) {
+        console.log("Error converting Image:", error);
+      }
+    };
+    takeSnapshot()
+
+    // Worklets.runOnJS(takeSnapshot);
   }, []);
 
   if (!hasPermission || !device) {
